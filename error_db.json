@@ -1,0 +1,27 @@
+[
+  {
+    "code": "NET-001",
+    "category": "Network",
+    "keywords": ["네트워크", "IP", "망"],
+    "error": "IP 충돌",
+    "solution": "사전 IP 스캔 수행"
+  },
+  {
+    "code": "MIG-001",
+    "category": "Migration",
+    "keywords": ["디스크", "변환", "vmdk", "qcow2"],
+    "error": "virt-v2v 실패",
+    "solution": "virtio 드라이버 확인"
+  },
+  {
+    "code": "DRV-001",
+    "category": "Driver",
+    "keywords": ["드라이버", "virtio", "scsi"],
+    "error": "VirtIO 드라이버 오류 (Code 31)",
+    "solution": "서명된 드라이버 재설치"
+   },
+   {
+  "code": "MIG-001",
+  "severity": "HIGH"
+   }
+]

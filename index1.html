@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Legato | AI WBS Generator</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #030712;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --risk-red: #fb7185;
+        }
+
+        body {
+            margin: 0; font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%);
+            color: var(--text-main); min-height: 100vh; -webkit-font-smoothing: antialiased;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 100px 24px; position: relative; }
+        header h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.05em; margin-bottom: 48px; text-align: center; }
+        header h2 span { color: var(--primary); }
+
+        .card {
+            background: var(--card-bg); backdrop-filter: blur(30px) saturate(150%);
+            border: 1px solid var(--glass-border); border-top: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px; padding: 40px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        input {
+            width: 100%; box-sizing: border-box; padding: 20px; border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(0, 0, 0, 0.2);
+            color: #fff; font-size: 16px; outline: none; margin-bottom: 24px; transition: all 0.3s;
+        }
+        input:focus { border-color: var(--primary); background: rgba(0, 0, 0, 0.4); }
+
+        .btn-group { display: flex; gap: 12px; }
+        button {
+            flex: 1; padding: 16px; border-radius: 14px; font-weight: 600; font-size: 14px;
+            cursor: pointer; transition: all 0.2s; font-family: inherit;
+        }
+        .btn-primary { background: #fff; color: #000; border: none; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(255, 255, 255, 0.1); }
+        
+        .btn-secondary { background: rgba(255, 255, 255, 0.03); color: #fff; border: 1px solid var(--glass-border); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.08); }
+
+        /* Table Styling */
+        .result-box { margin-top: 32px; animation: slideUp 0.6s ease-out; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 18px 12px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid var(--glass-border); }
+        td { padding: 20px 12px; font-size: 14px; border-bottom: 1px solid var(--glass-border); }
+
+        /* Error Code 전용 폰트 스타일 */
+        .code-cell { font-family: 'Monaco', 'Consolas', monospace; color: #818cf8; font-size: 12px; font-weight: 500; }
+
+        .badge { padding: 4px 10px; font-size: 11px; font-weight: 800; border-radius: 6px; background: rgba(251, 113, 133, 0.1); color: var(--risk-red); border: 1px solid rgba(251, 113, 133, 0.15); }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .loader { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #fff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .center { text-align: center; padding: 100px 0; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header><h2><span>LEGATO</span> AI Architect</h2></header>
+
+    <div class="card">
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 14px; display: block;">Project Definition</label>
+        <input id="project" placeholder="ex) VMware에서 OpenStack으로 Windows 서버 마이그레이션
+" autocomplete="off"/>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="gen()">Analyze & Generate</button>
+            <button class="btn-secondary" onclick="downloadExcel()">Export Excel</button>
+        </div>
+    </div>
+
+    <div id="result" class="result-box">
+        <div class="card center">프로젝트를 입력하고 생성 버튼을 눌러주세요.</div>
+    </div>
+</div>
+
+<script>
+    async function gen() {
+        const project = document.getElementById("project").value;
+        const resultDiv = document.getElementById("result");
+        if (!project) return;
+
+        resultDiv.innerHTML = `<div class="card center"><div class="loader"></div><p style="margin-top:20px;">구조 분석 중...</p></div>`;
+
+        try {
+            const res = await fetch("http://127.0.0.1:8000/generate-wbs", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({project})
+            });
+            const data = await res.json();
+            const tasks = data.result?.tasks || data.result || [];
+
+            let html = `<div class="card" style="padding: 24px 32px; overflow-x: auto;"><table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Error Code</th> <th>Task Description</th>
+                        <th>Duration</th>
+                        <th>Owner</th>
+                        <th>Risk</th>
+                    </tr>
+                </thead><tbody>`;
+
+            tasks.forEach(t => {
+                // 서버에서 'error_code' 또는 'code'라는 필드명으로 데이터를 준다고 가정합니다.
+                // 데이터가 없을 경우를 대비해 'OK' 혹은 'E000' 기본값을 세팅합니다.
+                const errorCode = t.error_code || t.code || "OK_000";
+
+                html += `<tr>
+                    <td style="font-weight: 800; color: var(--primary); opacity: 0.8;">${t.wbs}</td>
+                    <td class="code-cell">${errorCode}</td>
+                    <td style="font-weight: 600;">${t.task}</td>
+                    <td style="color: var(--text-muted); font-size: 13px;">${t.duration}d</td>
+                    <td>${t.assignee}</td>
+                    <td><span class="badge">${t.risk || 'Low'}</span></td>
+                </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            resultDiv.innerHTML = html;
+        } catch (e) {
+            resultDiv.innerHTML = `<div class="card center" style="color:var(--risk-red)">서버 연결 오류가 발생했습니다.</div>`;
+        }
+    }
+
+    async function downloadExcel() {
+        const project = document.getElementById("project").value;
+        if (!project) return alert("프로젝트 내용을 입력해주세요.");
+        try {
+            const res = await fetch("http://127.0.0.1:8000/generate-wbs-excel", {
+                method: "POST", headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({project})
+            });
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `WBS_${project}.xlsx`; a.click();
+        } catch (e) { alert("다운로드 오류"); }
+    }
+</script>
+
+</body>
+</html>
