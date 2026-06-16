@@ -8,41 +8,71 @@ const terminalFeedback = document.getElementById('terminalFeedback');
 let currentStepTitle = "그룹 생성";
 let currentStepId = 0; 
 let expectedCommand = ""; 
-let completedSteps = new Set(); // 중복 없이 완료 트랙 번호를 저장할 Set 오브젝트
+let completedSteps = new Set(); 
+let typeWriterInterval = null; // 타자 효과 인터벌 초기화 변수
 
 document.addEventListener("DOMContentLoaded", () => {
     const firstCard = document.getElementById('step-0');
     if (firstCard) {
         renderDynamicLab(firstCard);
-        updateOverallProgress(); // 초기 0/5 카운터 스캔 렌더링
+        updateOverallProgress(); 
     }
 });
 
-// 상단 진행률과 X / 5 Steps COMPLETED 를 완벽 연동해주는 핵심 엔진 함수
+// [1번 패치] 가독성을 높여주는 프로페셔널 고성능 타자 효과 함수
+function typeWriterEffect(element, htmlText, speed = 8) {
+    // 기존에 돌고 있던 타자 타이머가 있다면 즉시 강제 종료
+    clearInterval(typeWriterInterval);
+    
+    // HTML 개행 코드 변환 처리
+    const formattedText = htmlText.replace(/\n/g, "<br>");
+    element.innerHTML = "";
+    
+    let index = 0;
+    // 태그(<...>) 구조 안에 있는 문자들을 오작동 없이 한 번에 출력하기 위한 파싱 처리
+    typeWriterInterval = setInterval(() => {
+        if (formattedText[index] === '<') {
+            // 태그가 끝나는 > 지점까지 한 번에 인덱스를 점프시킴
+            let closingTagIndex = formattedText.indexOf('>', index);
+            if (closingTagIndex !== -1) {
+                index = closingTagIndex + 1;
+            }
+        } else {
+            index++;
+        }
+        
+        element.innerHTML = formattedText.substring(0, index);
+        
+        if (index >= formattedText.length) {
+            clearInterval(typeWriterInterval);
+        }
+    }, speed);
+}
+
+// 상단 진행률과 완수 단계를 정합해주는 코어 상태 엔진 함수
 function updateOverallProgress() {
     const completedCount = completedSteps.size;
-    
-    // 1. 헤더 마일스톤 텍스트 카운터 실시간 교체
     document.getElementById('progressStepCount').innerText = completedCount;
 
-    // 2. 전체 5개 모듈 데이터 비례식 게이지 변환 연동
     const progressPercent = Math.min((completedCount / 5) * 100, 100);
     document.getElementById('progressPercentage').innerText = `${progressPercent}%`;
     document.getElementById('progressFill').style.width = `${progressPercent}%`;
 }
 
-// 왼쪽 카드 메뉴를 클릭했을 때 대시보드를 전환해주는 메인 스위칭 함수
+// 단계를 마우스로 클릭해 변경할 때 작동하는 메인 이벤트 바인딩
 function changeStep(id, title, content) {
     currentStepId = parseInt(id);
     currentStepTitle = title;
     document.getElementById('contentTitle').innerText = title;
-    document.getElementById('contentText').innerHTML = content.replace(/\n/g, "<br>");
+    
+    // [1번 패치 적용] 정적으로 글자가 툭 나오는 대신 타자치는 효과 가동
+    const contentTextElement = document.getElementById('contentText');
+    typeWriterEffect(contentTextElement, content, 7);
 
     document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active-step'));
     const activeCard = document.getElementById(`step-${id}`);
     activeCard.classList.add('active-step');
 
-    // UI 상태 배지 업데이트 (완료/실행중/대기) 유기적 스위칭
     document.querySelectorAll('.status-badge').forEach((b, idx) => {
         if (completedSteps.has(idx)) {
             b.innerText = "COMPLETED";
@@ -62,7 +92,7 @@ function changeStep(id, title, content) {
     renderDynamicLab(activeCard);
 }
 
-// 데이터 노드 맵 레이어 및 체크박스 이벤트 인스턴스 동적 빌드 함수
+// 데이터 변경 시 가상 실습 서브 모듈 리렌더링
 function renderDynamicLab(card) {
     document.getElementById('srcNodeName').innerText = card.getAttribute('data-source');
     document.getElementById('tgtNodeName').innerText = card.getAttribute('data-target');
@@ -88,7 +118,6 @@ function renderDynamicLab(card) {
         `;
         checkpointList.appendChild(li);
 
-        // 상용 교육 사이트처럼 유저가 리스트를 직접 체크할 때 발생하는 로직 제어
         const chkBox = li.querySelector('input[type="checkbox"]');
         chkBox.addEventListener('change', () => {
             const allBoxes = checkpointList.querySelectorAll('input[type="checkbox"]');
@@ -103,12 +132,12 @@ function renderDynamicLab(card) {
                 document.getElementById(`badge-${currentStepId}`).innerText = "RUNNING";
                 document.getElementById(`badge-${currentStepId}`).style.color = "#60a5fa";
             }
-            updateOverallProgress(); // 체크 상태 변경 반영하여 전체 카운터 실시간 동기화
+            updateOverallProgress(); 
         });
     });
 }
 
-// 가상 쉘 커맨드라인 엔터 인터랙션 검증 가동
+// 가상 쉘 커맨드 인증 엔터 라우팅 처리
 terminalInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         const cmd = terminalInput.value.trim();
@@ -129,7 +158,7 @@ terminalInput.addEventListener('keydown', (e) => {
     }
 });
 
-// AI Copilot 요청 API 컨텍스트 라우팅 연동 단
+// AI Copilot 전용 지식 베이스 리퀘스트 처리
 askBtn.addEventListener('click', async () => {
     const question = questionInput.value;
     if (!question) { return alert('질문을 입력하세요.'); }
@@ -143,7 +172,9 @@ askBtn.addEventListener('click', async () => {
             body: JSON.stringify({ question, current_step: currentStepTitle })
         });
         const data = await response.json();
-        answerBox.innerHTML = data.answer.replace(/\n/g, "<br>");
+        
+        // AI가 대답을 내놓을 때도 타자 효과를 입혀 더욱 현장감 있게 묘사
+        typeWriterEffect(answerBox, data.answer, 4);
     } catch (e) {
         answerBox.innerText = '인프라 API 타임아웃 오류 발생. 회선 상태를 점검하십시오.';
     }
