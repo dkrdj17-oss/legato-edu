@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Legato AI 교육 플랫폼</title>
+    <title>Legato AI 프로페셔널 아카데미</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -11,83 +11,120 @@
 <div class="container">
     <header>
         <div>
-            <h1>Legato AI Academy</h1>
-            <p>OpenStack Migration Interactive Learning Platform</p>
+            <div class="brand-tag">PRO-TRACK</div>
+            <h1>Legato AI Academy <span style="font-weight: 300; font-size: 24px; color: #60a5fa;">v2.0</span></h1>
+            <p>Enterprise VMware to Contrabass Migration Advanced Course</p>
         </div>
         <div class="header-status">
-            <div class="status-dot"></div>
-            <div class="status-text">Learning System Online</div>
+            <div class="status-dot animate-pulse"></div>
+            <div class="status-text">Cloud Infrastructure Sync Active</div>
         </div>
     </header>
 
-    <div class="progress-wrapper" style="margin-bottom: 20px;">
-        <p id="progressText">학습 진행률 20%</p>
-        <div class="progress-bar" style="background: rgba(255,255,255,0.1); border-radius: 999px; height: 8px; margin-top: 8px; overflow: hidden;">
-            <div id="progressFill" class="progress-fill" style="background: linear-gradient(to right, #60a5fa, #06b6d4); width: 20%; height: 100%; transition: width 0.3s ease;"></div>
+    <div class="progress-container">
+        <div class="progress-meta">
+            <span id="progressText">Core Track Milestone: <span id="progressStepCount" style="color: #60a5fa; font-weight: 700;">0</span> / 5 Steps COMPLETED</span>
+            <span class="progress-percentage" id="progressPercentage">0%</span>
+        </div>
+        <div class="progress-track">
+            <div id="progressFill" class="progress-bar-fill"></div>
         </div>
     </div>
 
     <div class="main-layout">
         <aside class="sidebar">
-            <h2>교육 단계</h2>
+            <h2 class="section-title">ENGINEERING STEPS</h2>
             {% for step in steps %}
             <div class="step-card {% if step.id == 0 %}active-step{% endif %}"
                  id="step-{{ step.id }}"
-                 data-diagram="{{ step.diagram | tojson | forceescape }}"
+                 data-source="{{ step.diagram_source }}"
+                 data-target="{{ step.diagram_target }}"
+                 data-hint="{{ step.mission_hint }}"
                  data-checkpoints="{{ step.checkpoints | tojson | forceescape }}"
-                 onclick="changeStep('{{ step.id }}', '{{ step.title }}', `{{ step.content }}`)">
+                 onclick="changeStep('{{ step.id }}', '{{ step.title }}', `{{ step.content | forceescape }}`)">
                 <div class="step-top">
                     <h3>
-                        {% if step.id == 0 %}📦{% elif step.id == 1 %}🗂{% elif step.id == 2 %}💾{% elif step.id == 3 %}🔄{% elif step.id == 4 %}🚀{% endif %}
+                        <span class="step-icon">{{ step.badge_icon }}</span>
                         {{ step.title }}
                     </h3>
                     <span class="status-badge" id="badge-{{ step.id }}">
-                        {% if step.id == 0 %}진행중{% else %}대기{% endif %}
+                        {% if step.id == 0 %}RUNNING{% else %}PENDING{% endif %}
                     </span>
                 </div>
-                <p>{{ step.description }}</p>
+                <p class="step-desc">{{ step.description }}</p>
             </div>
             {% endfor %}
         </aside>
 
         <main class="content">
-            <h2>학습 내용</h2>
+            <h2 class="section-title">HANDS-ON LABORATORY</h2>
             <div class="content-box">
                 <div class="content-header">
                     <div>
                         <h3 id="contentTitle">{{ steps[0].title }}</h3>
-                        <p class="content-subtitle">Legato Migration Education</p>
+                        <p class="content-subtitle">Contrabass OpenStack Migration Automation Infrastructure</p>
                     </div>
-                    <div class="content-status">ACTIVE</div>
+                    <div class="content-status-badge">PRODUCTION READY</div>
                 </div>
 
-                <div class="diagram-box" id="diagramBox">
+                <div class="architecture-map">
+                    <div class="arch-node source-node">
+                        <div class="node-layer">SOURCE</div>
+                        <span id="srcNodeName">{{ steps[0].diagram_source }}</span>
                     </div>
+                    <div class="arch-flow">
+                        <div class="flow-line"></div>
+                        <span class="flow-engine">Legato Engine</span>
+                    </div>
+                    <div class="arch-node target-node">
+                        <div class="node-layer">TARGET</div>
+                        <span id="tgtNodeName">{{ steps[0].diagram_target }}</span>
+                    </div>
+                </div>
 
-                <div id="contentText">
+                <div id="contentText" class="markdown-body">
                     {{ steps[0].content }}
                 </div>
             </div>
 
-            <div class="quiz-box">
-                <h3>실무 체크 포인트</h3>
-                <ul id="checkpointList" style="list-style: none;">
-                    </ul>
+            <div class="lab-interactive-zone">
+                <div class="quiz-box">
+                    <h3>📋 필수 현장 아키텍처 검증 리스트</h3>
+                    <ul id="checkpointList"></ul>
+                </div>
+
+                <div class="terminal-box">
+                    <div class="terminal-header">
+                        <span class="term-dot close"></span>
+                        <span class="term-dot minimize"></span>
+                        <span class="term-dot expand"></span>
+                        <span class="term-title">Legato Automation Terminal v1.4</span>
+                    </div>
+                    <div class="terminal-body">
+                        <p class="term-instruction">💡 가상 쉘 미션: 아래 힌트와 일치하는 명령어를 입력해 가상 엔진을 기동하세요.</p>
+                        <p class="term-hint-text">정답 힌트: <code id="terminalHint">{{ steps[0].mission_hint }}</code></p>
+                        <div class="term-line">
+                            <span class="term-prompt">root@legato-master:~#</span>
+                            <input type="text" id="terminalInput" placeholder="명령어를 입력하고 Enter를 누르세요..." autocomplete="off">
+                        </div>
+                        <p id="terminalFeedback" class="term-feedback"></p>
+                    </div>
+                </div>
             </div>
         </main>
 
         <aside class="ai-panel">
-            <h2>AI 튜터</h2>
+            <h2 class="section-title">MIGRATION AI COPILOT</h2>
             <div class="question-buttons">
-                <button onclick="askPresetQuestion('왜 이 단계가 마이그레이션에서 필수적인가요?')">왜 필요한가요?</button>
-                <button onclick="askPresetQuestion('이 단계에서 발생하는 가장 흔한 네트워크 에러와 해결책은?')">주요 네트워크 이슈</button>
-                <button onclick="askPresetQuestion('실무 가이드라인 기준 주의점을 알려주세요.')">실무 가이드라인</button>
+                <button onclick="askPresetQuestion('인프라 아키텍처 관점에서 이 단계가 누락되면 어떤 장애가 발생하나요?')">💡 이관 장애 리스크 체크</button>
+                <button onclick="askPresetQuestion('실무 가동 중인 리눅스/윈도우 서버 이관 시 가장 자주 깨지는 네트워크 트러블슈팅 사례는?')">⚡ 네트워크 정합성 디버깅</button>
+                <button onclick="askPresetQuestion('레가토 마이그레이션 절차서(WBS) 구성 시 공수 산정 표준 가이드를 알려주세요.')">📊 WBS 표준 공수 산정</button>
             </div>
 
-            <textarea id="question" placeholder="현재 학습 중인 단계에 대해 질문해보세요..."></textarea>
-            <button id="askBtn">AI에게 질문하기</button>
+            <textarea id="question" placeholder="현재 세션 스터디 도중 막히는 인프라 구성, 스토리지 볼륨 매핑 에러 등을 자유롭게 질문하십시오..."></textarea>
+            <button id="askBtn">Run AI Deep-Dive</button>
 
-            <div id="answerBox">AI 응답이 여기에 표시됩니다.</div>
+            <div id="answerBox" class="markdown-body">AI 아키텍트 분석 대기 중...</div>
         </aside>
     </div>
 </div>

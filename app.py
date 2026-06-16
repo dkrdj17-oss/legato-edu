@@ -4,82 +4,71 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-
 app = Flask(__name__)
 
-# API Key 보안 관리 확인 필요
+# OpenAI API 클라이언트 초기화 (오타 수정 및 환경 변수 처리)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 education_steps = [
     {
         "id": 0,
         "title": "그룹 생성",
-        "description": "마이그레이션 대상 VM들을 그룹으로 관리합니다.",
-        "diagram": ["원본 VM", "레가토 그룹", "이관 단위 지정"],
-        "checkpoints": ["소스 vCenter 연결 상태 확인", "이관 대상 VM 전원 확인", "그룹 네이밍 규칙 준수"],
-        "content": """그룹 생성 단계입니다.
-        여러 VM을 하나의 작업 단위로 묶어 관리합니다.
-        
-        실무 포인트:
-        - 업무별 그룹 분리
-        - 서버 역할별 그룹 구성
-        - 운영/개발 환경 구분"""
+        "badge_icon": "📦",
+        "description": "마이그레이션 대상 VM들을 업무 단위별 그룹으로 묶어 관리합니다.",
+        "diagram_source": "VMware vCenter",
+        "diagram_target": "Legato Group Container",
+        "mission_hint": "legato-cli group create --name enterprise-web",
+        "checkpoints": ["소스 vCenter API 연동 및 자원 인벤토리 로드 확인", "이관 대상 VM의 에이전트(CDP) 통신 포트 오픈 확인", "운영/개발/스테이징 환경별 이관 그룹 분리 가이드 준수"],
+        "content": """### 💡 실무 엔지니어 핵심 포인트
+        마이그레이션의 첫 단추는 '영향도 기반 그룹핑'입니다. 단일 VM 단위로 이관하면 웹-WAS-DB 간의 의존성 때문에 컷오버 시 서비스가 깨질 수 있습니다. 3-Tier 아키텍처는 반드시 하나의 복제 그룹으로 묶어야 합니다."""
     },
     {
         "id": 1,
         "title": "플랜 생성",
-        "description": "마이그레이션 절차와 순서를 정의합니다.",
-        "diagram": ["그룹 선택", "타겟 테넌트 지정", "이관 플랜 확정"],
-        "checkpoints": ["DB 서버 우선순위 고려", "서비스 영향도 분석 완료", "마이그레이션 창(Window) 시간 확보"],
-        "content": """플랜 생성 단계입니다.
-        마이그레이션 순서와 정책을 정의합니다.
-        
-        실무 포인트:
-        - DB 서버 우선 고려
-        - 서비스 영향도 분석
-        - 작업 시간 계획"""
+        "badge_icon": "🗂",
+        "description": "마이그레이션 시나리오, 우선순위 및 네트워크 매핑 정책을 수립합니다.",
+        "diagram_source": "Legato Group",
+        "diagram_target": "Migration Plan",
+        "mission_hint": "legato-cli plan generate --source-group enterprise-web",
+        "checkpoints": ["DB 서버의 데이터 차분 복제 유예 시간 계산", "타겟 오케스트로 콘트라베이스 테넌트(네트워크/보안그룹) 매핑", "Target 가상머신 기동 우선순위(BOOT ORDER) 설정"],
+        "content": """### 💡 실무 엔지니어 핵심 포인트
+        플랜 생성 단계에서는 '네트워크 토폴로지 전환 정책'이 핵심입니다. 원본 환경의 VLAN 대역이 콘트라베이스(OpenStack) 상의 어떤 가상 네트워크(Neutron Network)와 보안그룹(Security Group)으로 매핑될지 명확한 룰셋을 정의해야 이관 후 통신 두절을 막을 수 있습니다."""
     },
     {
         "id": 2,
         "title": "볼륨 생성",
-        "description": "OpenStack에 데이터 저장 공간을 준비합니다.",
-        "diagram": ["타겟 스토리지", "Cinder 볼륨 할당", "복제 대기"],
-        "checkpoints": ["타겟 스토리지 잔여 용량 확인", "Ceph/정적 스토리지 타입 매칭", "Volume Attach 권한 체크"],
-        "content": """볼륨 생성 단계입니다.
-        OpenStack Cinder 볼륨을 생성합니다.
-        
-        실무 포인트:
-        - 용량 확인
-        - 스토리지 타입 확인
-        - attach 가능 여부 확인"""
+        "badge_icon": "💾",
+        "description": "OpenStack 타겟 환경에 데이터가 동기화될 저장 공간을 사전 프로비저닝합니다.",
+        "diagram_source": "VMware VMDK vDisk",
+        "diagram_target": "OpenStack Cinder Volume",
+        "mission_hint": "legato-cli volume provisioning --plan-id PLAN-002",
+        "checkpoints": ["타겟 스토리지(Ceph RBD / SAN) 프리 풀 잔여 용량 체크 (1.2배 권장)", "원본 디스크 타입(Thin/Thick)에 따른 Cinder 볼륨 타입 매칭", "초기 블록 디바이스 매핑 상태 무결성 검증"],
+        "content": """### 💡 실무 엔지니어 핵심 포인트
+        원본 디스크 용량만 보고 타겟 볼륨을 잡으면 낭패를 볼 수 있습니다. 가상화 환경 특성상 **Thin Provisioning** 공간 분배율을 고려해야 하며, 마이그레이션 도중 발생하는 스냅샷 및 차분 데이터를 받기 위해 타겟 스토리지는 최소 20%의 마진을 확보해야 안전합니다."""
     },
     {
         "id": 3,
         "title": "초기복제",
-        "description": "원본 VM 데이터를 대상 환경으로 복제합니다.",
-        "diagram": ["소스 데이터", "블록 단위 CDP 복제", "타겟 볼륨 동기화"],
-        "checkpoints": ["복제 네트워크 대역폭 확인", "초기 동기화 진행률 모니터링", "데이터 정합성(체크섬) 검증"],
-        "content": """초기복제 단계입니다.
-        원본 VM 데이터를 대상 환경으로 복사합니다.
-        
-        실무 포인트:
-        - 네트워크 속도 확인
-        - 복제 시간 확인
-        - 데이터 정합성 체크"""
+        "badge_icon": "🔄",
+        "description": "블록 레벨 실시간 CDP 엔진을 기동하여 백그라운드 데이터 동기화를 수행합니다.",
+        "diagram_source": "Source Storage Data",
+        "diagram_target": "Target Storage Sync (CDP)",
+        "mission_hint": "legato-cli replication start --all",
+        "checkpoints": ["이관 전용 가속 네트워크 대역폭(QoS) 및 회선 점유율 모니터링", "초기 풀 데이터 동기화 진행률 및 I/O 병목 상태 디버깅", "블록 정합성(Checksum) 실시간 대조 상태 가시성 확인"],
+        "content": """### 💡 실무 엔지니어 핵심 포인트
+        초기 복제 시에는 운영 중인 서비스 가동률에 영향을 주지 않도록 네트워크 대역폭 제한(Throttling)을 적절히 제어해야 합니다. 레가토의 CDP 엔진이 블록 단위 실시간 변경분(Dirty Block)을 추적하기 시작하는 시점이므로, 가급적 I/O가 적은 야간 시간대에 메인 동기화를 타는 것이 정석입니다."""
     },
     {
         "id": 4,
         "title": "Cut-over",
-        "description": "서비스를 최종 전환합니다.",
-        "diagram": ["소스 서비스 정지", "최종 차분 복제", "타겟 가상머신 기동"],
-        "checkpoints": ["GW 및 가상 네트워크 라우팅 전환", "보안그룹(Security Group) 규칙 적용", "Rollback 시나리오 최종 확인"],
-        "content": """Cut-over 단계입니다.
-        실제 서비스를 신규 환경으로 전환합니다.
-        
-        실무 포인트:
-        - 서비스 중단 시간 최소화
-        - 최종 점검 수행
-        - Rollback 계획 준비"""
+        "badge_icon": "🚀",
+        "description": "소스 가상머신을 정지하고 최종 차분 데이터를 마이크로초 단위로 복제 후 최종 전환합니다.",
+        "diagram_source": "Source VM Stop",
+        "diagram_target": "Target Cloud Instance Run",
+        "mission_hint": "legato-cli cutover execute --force",
+        "checkpoints": ["소스 인프라 최종 서비스 가동 정지(Downtime Window 진입)", "최종 미동기화 차분 블록 복제 완료 확인", "타겟 인프라 인스턴스 기동 후 가상 IP 및 라우팅 테이블 스위칭 검증", "유사시 원복을 위한 롤백(Rollback) 가동 프로세스 상시 대기"],
+        "content": """### 💡 실무 엔지니어 핵심 포인트
+        마이그레이션의 꽃이자 가장 장애가 많이 나는 마의 구간입니다. 컷오버(Cut-over) 스위치를 누르기 전 최종 게이트웨이 아웃바운드 핑 테스트와 가상 하이퍼바이저 내 드라이버 정합성(VirtIO 드라이버 변환 여부 등)을 완벽히 점검해야 무중단에 가까운 탈 VMware 이관이 완성됩니다."""
     }
 ]
 
@@ -91,28 +80,24 @@ def index():
 def ask_ai():
     data = request.json
     question = data.get('question')
-    current_step = data.get('current_step', '일반 인프라 마이그레이션')
+    current_step = data.get('current_step', '오케스트로 인프라 마이그레이션 개론')
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini", # 모델명 오타 수정
+            model="gpt-4o-mini",  # 가성비 및 성능 최적화 모델 적용
             messages=[
                 {
                     "role": "system",
-                    "content": f"""너는 오케스트로의 Contrabass 및 Legato 마이그레이션 솔루션 교육 전문가다.
-                    사용자는 현재 [{current_step}] 단계를 학습하는 중이다. 이 맥락을 고려하여 답변하라.
-                    초급자 엔지니어 기준으로 쉽게 설명하고, 단계별 구성 및 실무 예시(네트워크, 스토리지 트러블슈팅 등)를 포함하라."""
+                    "content": f"""너는 대한민국 최고 권위의 클라우드 마이그레이션 솔루션(오케스트로 Contrabass 및 Legato) 아키텍처 교육 전문가이다.
+                    학습자는 현재 [{current_step}] 고난도 실무 트랙을 밟고 있다.
+                    답변 시 마이그레이션 트러블슈팅, 네트워크 브리지 구성, 오픈스택 Cinder/Neutron 연계 등 실제 시니어 엔지니어들이 겪는 장애 사례와 해결책을 엮어서 전문가답고 명료하게 마크다운 형식으로 가독성 있게 설명하라."""
                 },
-                {
-                    "role": "user",
-                    "content": question
-                }
+                {"role": "user", "content": question}
             ]
         )
-        answer = response.choices[0].message.content
-        return jsonify({'answer': answer})
+        return jsonify({'answer': response.choices[0].message.content})
     except Exception as e:
-        return jsonify({'answer': f'오류 발생: {str(e)}'})
+        return jsonify({'answer': f'⚠️ **AI Engine Timeout/Error**: {str(e)}'})
 
 if __name__ == '__main__':
     app.run(debug=True)
